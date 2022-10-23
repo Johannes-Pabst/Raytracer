@@ -6,3 +6,6 @@ Es können beliebig viele punktförmige Lichtquellen mit beliebigen Farben defin
 
 ## Portale
 Man kann Portale definieren. Jedes Portal besteht aus einem Rechteck, das die Stelle definiert, an der das Portal sichtbar ist, sowie einem Ortsvektor, der die Blickrichtung definiert, die sichtbar ist, wenn man in das Portal hineinsieht.
+
+## Screenhot
+![Screenshot](images/screenshot_1.png)
