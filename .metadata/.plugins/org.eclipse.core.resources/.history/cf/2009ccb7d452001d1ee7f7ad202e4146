@@ -1,0 +1,419 @@
+package pixeltest.render;
+
+import java.awt.BorderLayout;
+import java.util.Iterator;
+
+import javax.swing.JFrame;
+
+import de.pabst.pixeltest.pixels.PixelTestPanel;
+
+class Camera {
+	PixelTestPanel b;
+	JFrame j;
+	Point3d pos;
+	Point3d c00;
+	Point3d c10;
+	Point3d c01;
+	Point3d c11;
+	int pxx = 800;
+	int pxy = 600;
+	Point3d[][] p = new Point3d[pxx][pxy];
+	Point3d[] p1 = new Point3d[pxx];
+	Point3d[] p2 = new Point3d[pxx];
+	int tc = 0;
+	static int nof = 4;
+	Rectangle3d[][] r3d;
+	int[] an;
+
+	Camera(Point3d pos, Point3d c00, Point3d c10, Point3d c01, Point3d c11) {
+		this.pos = pos;
+		this.c00 = c00;
+		this.c10 = c10;
+		this.c01 = c01;
+		this.c11 = c11;
+	}
+
+	void render() {
+		if (true) {
+			int[] a = new int[Rectangle3d.r.size()];
+			double[] c = new double[Rectangle3d.r.size()];
+			int[] n = new int[Rectangle3d.r.size()];
+			int len = 0;
+			int l2 = 0;
+			for (int i = 0; i < Rectangle3d.r.size(); i++) {
+				int no = 0;
+				Rectangle3d r = Rectangle3d.r.get(i);
+				double co = 0;
+				if (r.normal.x != 0) {
+					no = 0;
+					co = r.center.x;
+				}
+				if (r.normal.y != 0) {
+					no = 1;
+					co = r.center.y;
+				}
+				if (r.normal.z != 0) {
+					no = 2;
+					co = r.center.z;
+				}
+				boolean b = false;
+				for (int j = 0; j < len; j++) {
+					if (c[j] == co && n[j] == no) {
+						a[j]++;
+						if (a[j] > l2) {
+							l2++;
+						}
+						b = true;
+						break;
+					}
+				}
+				if (!b) {
+					c[len] = co;
+					n[len] = no;
+					a[len] = 1;
+					if (l2 == 0) {
+						l2 = 1;
+					}
+					len++;
+				}
+			}
+			r3d = new Rectangle3d[len][l2];
+			an = new int[len];
+			for (int i = 0; i < Rectangle3d.r.size(); i++) {
+				int no = 0;
+				Rectangle3d r = Rectangle3d.r.get(i);
+				double co = 0;
+				if (r.normal.x != 0) {
+					no = 0;
+					co = r.center.x;
+				}
+				if (r.normal.y != 0) {
+					no = 1;
+					co = r.center.y;
+				}
+				if (r.normal.z != 0) {
+					no = 2;
+					co = r.center.z;
+				}
+				for (int j = 0; j < len; j++) {
+					if (c[j] == co && n[j] == no) {
+						r3d[j][an[j]] = r;
+						an[j]++;
+						break;
+					}
+				}
+			}
+		}
+		if (b == null) {
+			b = new PixelTestPanel();
+			j = new JFrame();
+			j.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+			b = new PixelTestPanel();
+			j.add(b, BorderLayout.CENTER);
+			j.pack();
+			j.setVisible(true);
+			j.setResizable(false);
+		}
+		for (int i = 0; i < nof; i++) {
+			final int x1 = (pxx / nof) * (i);
+			final int x2 = (pxx / nof) * (i + 1);
+			final int i2 = i;
+			Thread t1 = new Thread(new Runnable() {
+				public void run() {
+					for (int x = x1; x < x2; x++) {
+						for (int y = 0; y < pxy; y++) {
+							b.canvas.setRGB(x, y, renderColour(x, y));
+						}
+					}
+//					if(i2<2) {						
+					tc++;
+					if (tc == nof) {
+						j.repaint();
+						System.out.print(System.currentTimeMillis() - Main.ct);
+					}
+//					}
+				}
+			});
+			t1.start();
+
+		}
+//		for (int x = 0; x < pxx; x++) {
+//			for (int y = 0; y < pxy; y++) {
+//				b.canvas.setRGB(x, y, renderColour(x, y));
+//			}
+//			j.repaint();
+//		}
+	}
+
+	int renderColour(int x, int y) {
+		Point3d p1 = p[x][y];
+		Point3d p2 = new Point3d(p1.x - pos.x, p1.y - pos.y, p1.z - pos.z);
+		RayCastReturn rcr = raycast(p2, p1, true);
+		return handleRect(rcr.r, rcr.p, pos);
+	}
+
+	RayCastReturn raycast(Point3d direction, Point3d start, boolean canPortal) {
+		Rectangle3d rect = null;
+		double length = Double.POSITIVE_INFINITY;
+		Point3d colPoint = null;
+		for (int i = 0; i < r3d.length; i++) {
+			Rectangle3d[] r = r3d[i];
+			Point3d direction2 = direction.clone2();
+			if (r[0].normal.x != 0) {
+				double d = r[0].center.x - start.x;
+				if (d / direction2.x <= 0) {
+					continue;
+				}
+				direction2.mult(d / direction2.x);
+				Point3d p3 = new Point3d(direction2.x + start.x, direction2.y + start.y, direction2.z + start.z);
+				for (int j = 0; j < r.length; j++) {
+					Rectangle3d r2 = r[j];
+					if(r2==null) {
+						break;
+					}
+					if (Math.abs(r2.center.y - p3.y) < r2.radius && Math.abs(r2.center.z - p3.z) < r2.radius
+							&& direction2.getLength() < length) {
+						rect = r2;
+						length = direction2.getLength();
+						colPoint = p3;
+					}
+				}
+			}
+			if (r[0].normal.y != 0) {
+				double d = r[0].center.y - start.y;
+				if (d / direction2.y <= 0) {
+					continue;
+				}
+				direction2.mult(d / direction2.y);
+				Point3d p3 = new Point3d(direction2.x + start.x, direction2.y + start.y, direction2.z + start.z);
+				for (int j = 0; j < r.length; j++) {
+					Rectangle3d r2 = r[j];
+					if(r2==null) {
+						break;
+					}
+					if (Math.abs(r2.center.x - p3.x) < r2.radius && Math.abs(r2.center.z - p3.z) < r2.radius
+							&& direction2.getLength() < length) {
+						rect = r2;
+						length = direction2.getLength();
+						colPoint = p3;
+					}
+				}
+			}
+			if (r[0].normal.z != 0) {
+				double d = r[0].center.z - start.z;
+				if (d / direction2.z <= 0) {
+					continue;
+				}
+				direction2.mult(d / direction2.z);
+				Point3d p3 = new Point3d(direction2.x + start.x, direction2.y + start.y, direction2.z + start.z);
+				for (int j = 0; j < r.length; j++) {
+					Rectangle3d r2 = r[j];
+					if(r2==null) {
+						break;
+					} 
+					if (Math.abs(r2.center.y - p3.y) < r2.radius && Math.abs(r2.center.x - p3.x) < r2.radius
+							&& direction2.getLength() < length) {
+						rect = r2;
+						length = direction2.getLength();
+						colPoint = p3;
+					}
+				}
+			}
+		}
+		if(canPortal&&rect instanceof Portal) {
+//			Point3d st=start.clone2();
+//			Portal po=(Portal)rect;
+//			st.x+=po.p2.x-po.center.x;
+//			st.y+=po.p2.y-po.center.y;
+//			st.z+=po.p2.z-po.center.z;
+//			return raycast(direction, st, true);
+			Portal po=(Portal)rect;
+			Point3d st=po.p2.clone2();
+			Point3d popos=new Point3d(colPoint.x-po.center.x, colPoint.y-po.center.y, colPoint.z-po.center.z);
+			popos.x*=(po.p2r/po.radius);
+			popos.y*=(po.p2r/po.radius);
+			popos.z*=(po.p2r/po.radius);
+			popos=rotate90(popos, po.np2);
+			direction=rotate90(direction, po.np2);
+			st.x+=popos.x;
+			st.y+=popos.y;
+			st.z+=popos.z;
+			RayCastReturn ret = raycast(direction, st, true);
+			
+//			if(ret.r != null) {
+////				System.out.println("Getroffen!");
+//			}
+			
+			return ret;
+		}
+		return new RayCastReturn(rect, colPoint);
+	}
+	Point3d rotate90(Point3d p,Point3d r) {
+		return new Point3d(rhelp1(p,r.x),rhelp1(p,r.y),rhelp1(p,r.z));
+	}
+	double rhelp1(Point3d p,double r) {
+		double h=0;
+		if(Math.abs(r)==1) {
+			h=p.x;
+		}
+		if(Math.abs(r)==2) {
+			h=p.y;
+		}
+		if(Math.abs(r)==3) {
+			h=p.z;
+		}
+		if(r<0) {
+			h=-h;
+		}
+		return h;
+	}
+//	RayCastReturn raycast(Point3d direction, Point3d start) {
+//		Rectangle3d rect = null;
+//		double length = Double.POSITIVE_INFINITY;
+//		Point3d colPoint = null;
+//		for (int i = 0; i < Rectangle3d.r.size(); i++) {
+//			Rectangle3d r = Rectangle3d.r.get(i);
+//			Point3d direction2 = direction.clone2();
+//			if (r.normal.x != 0) {
+//				double d = r.center.x - start.x;
+//				if (d / direction2.x <= 0) {
+//					continue;
+//				}
+//				direction2.mult(d / direction2.x);
+//				Point3d p3 = new Point3d(direction2.x + start.x, direction2.y + start.y, direction2.z + start.z);
+//				if (Math.abs(r.center.y - p3.y) < r.radius && Math.abs(r.center.z - p3.z) < r.radius
+//						&& direction2.getLength() < length) {
+//					rect = r;
+//					length = direction2.getLength();
+//					colPoint = p3;
+//				}
+//			}
+//			if (r.normal.y != 0) {
+//				double d = r.center.y - start.y;
+//				if (d / direction2.y <= 0) {
+//					continue;
+//				}
+//				direction2.mult(d / direction2.y);
+//				Point3d p3 = new Point3d(direction2.x + start.x, direction2.y + start.y, direction2.z + start.z);
+//				if (Math.abs(r.center.x - p3.x) < r.radius && Math.abs(r.center.z - p3.z) < r.radius
+//						&& direction2.getLength() < length) {
+//					rect = r;
+//					length = direction2.getLength();
+//					colPoint = p3;
+//				}
+//			}
+//			if (r.normal.z != 0) {
+//				double d = r.center.z - start.z;
+//				if (d / direction2.z <= 0) {
+//					continue;
+//				}
+//				direction2.mult(d / direction2.z);
+//				Point3d p3 = new Point3d(direction2.x + start.x, direction2.y + start.y, direction2.z + start.z);
+//				if (Math.abs(r.center.y - p3.y) < r.radius && Math.abs(r.center.x - p3.x) < r.radius
+//						&& direction2.getLength() < length) {
+//					rect = r;
+//					length = direction2.getLength();
+//					colPoint = p3;
+//				}
+//			}
+//		}
+//		return new RayCastReturn(rect, colPoint);
+//	}
+
+	int handleRect(Rectangle3d r, Point3d colPoint, Point3d p) {
+		if (r != null) {
+			int version = 2;
+			int cr = (int) Math.floor(r.color / 256 / 256);
+			int cg = (int) Math.floor((r.color - cr * 256 * 256) / 256);
+			int cb = (int) Math.floor((r.color - cg * 256 - cr * 256 * 256));
+			if (version == 1) {
+				Point3d p2 = new Point3d(colPoint.x - pos.x, colPoint.y - pos.y, colPoint.z - pos.z);
+				double dist = p2.getLength() / 5;
+				cr = (int) Math.round(cr / dist * 50);
+				cg = (int) Math.round(cg / dist * 50);
+				cb = (int) Math.round(cb / dist * 50);
+			} else if (version == 2) {
+				double br = 0;
+				double bg = 0;
+				double bb = 0;
+				for (int i = 0; i < Light.l.size(); i++) {
+					Light l = Light.l.get(i);
+					RayCastReturn rcr = raycast(
+							new Point3d(colPoint.x - l.pos.x, colPoint.y - l.pos.y, colPoint.z - l.pos.z),
+							l.pos.clone2(), false);
+					if ((rcr.r == null
+							|| new Point3d(rcr.p.x - l.pos.x, rcr.p.y - l.pos.y, rcr.p.z - l.pos.z).getLength()
+									+ 0.00000001 >= new Point3d(l.pos.x - colPoint.x, l.pos.y - colPoint.y,
+											l.pos.z - colPoint.z).getLength())
+							&& ((r.normal.x != 0 && l.pos.x - r.center.x < 0 == p.x - r.center.x < 0)
+									|| (r.normal.y != 0 && l.pos.y - r.center.y < 0 == p.y - r.center.y < 0)
+									|| (r.normal.z != 0 && l.pos.z - r.center.z < 0 == p.z - r.center.z < 0))) {
+						double mult = 1;
+						if (r.normal.x != 0) {
+							mult = Math
+									.abs(new Point3d(colPoint.x - l.pos.x, colPoint.y - l.pos.y, colPoint.z - l.pos.z)
+											.setLength(1).x);
+						}
+						if (r.normal.y != 0) {
+							mult = Math
+									.abs(new Point3d(colPoint.x - l.pos.x, colPoint.y - l.pos.y, colPoint.z - l.pos.z)
+											.setLength(1).y);
+						}
+						if (r.normal.z != 0) {
+							mult = Math
+									.abs(new Point3d(colPoint.x - l.pos.x, colPoint.y - l.pos.y, colPoint.z - l.pos.z)
+											.setLength(1).z);
+						}
+						br += Math.pow(new Point3d(l.pos.x - colPoint.x, l.pos.y - colPoint.y, l.pos.z - colPoint.z)
+								.getLength(), -2) * 1000.0 * l.strength * l.r * mult;
+						bg += Math.pow(new Point3d(l.pos.x - colPoint.x, l.pos.y - colPoint.y, l.pos.z - colPoint.z)
+								.getLength(), -2) * 1000.0 * l.strength * l.g * mult;
+						bb += Math.pow(new Point3d(l.pos.x - colPoint.x, l.pos.y - colPoint.y, l.pos.z - colPoint.z)
+								.getLength(), -2) * 1000.0 * l.strength * l.b * mult;
+					}
+				}
+				cr = (int) Math.round(cr * br);
+				cg = (int) Math.round(cg * bg);
+				cb = (int) Math.round(cb * bb);
+			}
+			if (cr < 0) {
+				cr = 0;
+			}
+			if (cg < 0) {
+				cg = 0;
+			}
+			if (cb < 0) {
+				cb = 0;
+			}
+			if (cr > 255) {
+				cr = 255;
+			}
+			if (cg > 255) {
+				cg = 255;
+			}
+			if (cb > 255) {
+				cb = 255;
+			}
+			return cb + (cg + cr * 256) * 256 + 0xff000000;
+		} else {
+			return 0xff000000;
+		}
+	}
+
+	void fillPoints() {
+		for (int i = 0; i < pxx; i++) {
+			p1[i] = new Point3d((c00.x * i + c10.x * (pxx - i - 1)) / pxx, (c00.y * i + c10.y * (pxx - i - 1)) / pxx,
+					(c00.z * i + c10.z * (pxx - i - 1)) / pxx);
+		}
+		for (int i = 0; i < pxx; i++) {
+			p2[i] = new Point3d((c01.x * i + c11.x * (pxx - i - 1)) / pxx, (c01.y * i + c11.y * (pxx - i - 1)) / pxx,
+					(c01.z * i + c11.z * (pxx - i - 1)) / pxx);
+		}
+		for (int x = 0; x < pxx; x++) {
+			for (int y = 0; y < pxy; y++) {
+				p[x][y] = new Point3d((p1[x].x * y + p2[x].x * (pxy - y - 1)) / pxy,
+						(p1[x].y * y + p2[x].y * (pxy - y - 1)) / pxy, (p1[x].z * y + p2[y].z * (pxy - y - 1)) / pxy);
+			}
+		}
+	}
+}

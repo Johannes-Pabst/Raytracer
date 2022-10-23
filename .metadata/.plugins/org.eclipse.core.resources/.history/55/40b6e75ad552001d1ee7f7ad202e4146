@@ -1,0 +1,63 @@
+package pixeltest.render;
+
+public class Main {
+	public static long ct;
+	int[][][] blocks = new int[21][21][20];
+	public static void main(String[] args) {
+		ct=System.currentTimeMillis();
+		new Main();
+//		System.out.print(System.currentTimeMillis()-ct);
+	}
+
+	Main() {
+		// new Rectangle3d(new Point3d(0, 0, 500), 50, new Point3d(0, 0, -1), 0xffaa10);
+		// new Rectangle3d(new Point3d(50, 0, 450), 50, new Point3d(-1, 0, 0),
+		// 0xffaa10);
+		// new Rectangle3d(new Point3d(-50, 0, 450), 50, new Point3d(-1, 0, 0),
+		// 0xffaa10);
+		// new Rectangle3d(new Point3d(-50, 0, 600), 1000, new Point3d(0, 0, -1),
+		// 0xffffff);
+		for (int x = 1; x < blocks.length - 1; x++) {
+			for (int y = 1; y < blocks[0].length - 1; y++) {
+				for (int z = 0; z < blocks[0][0].length - 1; z++) {
+//					if (z == 0 || (Math.random() < y / 15.0 && blocks[x][y][z - 1] != 0)) {
+//						blocks[x][y][z] = 1;
+//					}
+					double noise=Noise.noise((21-y)/20.0,x/20.0);
+					if(noise*10+5>=z) {
+						blocks[x][y][z]=1;
+					}
+				}
+			}
+		}
+		int[][] directions = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
+		for (int x = 0; x < blocks.length - 1; x++) {
+			for (int y = 0; y < blocks[0].length - 1; y++) {
+				for (int z = 0; z < blocks[0][0].length - 1; z++) {
+					int b = blocks[x][y][z];
+					for (int i = 0; i < directions.length; i++) {
+						if ((b == 0) != (blocks[x + directions[i][0]][y + directions[i][1]][z
+								+ directions[i][2]] == 0)) {
+							int col = 0xffffff;
+							if (true) {
+								col = (int) Math.floor(Math.random() * (255 + 255 * 255 + 255 * 255 * 255));
+							}
+							new Rectangle3d(new Point3d(x * 100 + directions[i][0] * 50 - blocks.length*50,
+							z * 100 + directions[i][2] * 50 - 700, y * 100 + directions[i][1] * 50+1200), 50,
+							new Point3d(directions[i][0], directions[i][2], directions[i][1]), col);
+						}
+					}
+				}
+			}
+		}
+		new Light(0.2, new Point3d(0, 0, 0), 0xffffff);
+		new Light(5, new Point3d(-1400, 500, 1500), 0xff1515);
+		new Light(5, new Point3d(1400, 500, 1500), 0x15fbff);
+		new Portal(new Point3d(0, 20, 500), 50, new Point3d(0, 0, -1), 0xffffff, new Point3d(0,  20,2000), new Point3d(1, -3, 2), 500);
+		// new Light(5, new Point3d(0, 1000, 1000), 0xffffff);
+		Camera c = new Camera(new Point3d(0, 0, 0), new Point3d(3, -2, 4), new Point3d(-3, -2, 4), new Point3d(3, 2, 4),
+				new Point3d(-3, 2, 4));
+		c.fillPoints();
+		c.render();
+	}
+}

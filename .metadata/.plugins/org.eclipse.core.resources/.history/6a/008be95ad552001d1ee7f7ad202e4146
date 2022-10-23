@@ -1,0 +1,32 @@
+package pixeltest.render;
+
+class Point3d {
+	   double x;
+	   double y;
+	   double z;
+	   Point3d(double x, double y, double z) {
+	      this.x = x;
+	      this.y = y;
+	      this.z = z;
+	   }
+	   Point3d clone2() {
+	      return new Point3d(x, y, z);
+	   }
+	   double getLength() {
+	      return Math.pow(Math.abs(x*x*x) + Math.abs(y*y*y) + Math.abs(z*z*z), 1 / 3.0);
+	   }
+	   Point3d setLength(double length) {
+	      double gl = getLength();
+	      x *= length / gl;
+	      y *= length / gl;
+	      z *= length / gl;
+	      return this;
+	   }
+	   Point3d mult(double factor) {
+	      x *= factor;
+	      y *= factor;
+	      z *= factor;
+	      return this;
+	   }
+	}
+

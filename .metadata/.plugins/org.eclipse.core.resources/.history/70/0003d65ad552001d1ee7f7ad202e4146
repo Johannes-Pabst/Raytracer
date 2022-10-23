@@ -1,0 +1,32 @@
+package pixeltest.pixels;
+
+import java.awt.BorderLayout;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+
+import javax.imageio.ImageIO;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+
+class PixelTest extends JPanel{
+	BufferedImage canvas;
+	public PixelTest(){
+		super();
+	}
+public static void main(String[] args) {
+	BufferedImage b=new BufferedImage(800, 600, BufferedImage.TYPE_INT_ARGB);
+	PixelTest j=new PixelTest();
+	j.canvas=b;
+//	JFrame f=new JFrame();
+	b.setRGB(0, 0, 0x000000);
+	
+//	File fi = new File("test.png");
+//	try {
+//		ImageIO.write(b, "PNG", fi);
+//	} catch (IOException e) {
+//		// TODO Auto-generated catch block
+//		e.printStackTrace();
+//	}
+}
+}
